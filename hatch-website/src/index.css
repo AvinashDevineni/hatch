@@ -1,0 +1,60 @@
+* {
+  font-family: Inter;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  padding: 20px 20px;
+  margin: 0 auto;
+}
+
+textarea {
+  resize: none;
+  font-family: inherit;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+button.main {
+  border-radius: 8px;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #f2c94c;
+  color: #0b1a33;
+  transition: all 0.25s;
+  border: none;
+}
+
+button.secondary {
+  border-radius: 8px;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #ffffff;
+  color: #0b1a33;
+  transition: all 0.25s;
+  border: none;
+}
+
+button:hover {
+  cursor: pointer;
+  scale: 1.1;
+}

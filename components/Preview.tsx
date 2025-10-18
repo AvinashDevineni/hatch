@@ -4,18 +4,18 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Globe, RefreshCw, ExternalLink, AlertCircle } from 'lucide-react';
 
 interface PreviewProps {
-  projectId: string;
+  startupId: string;
   isGenerating: boolean;
   generationCompleted: boolean;
 }
 
-interface ProjectFile {
+interface StartupFile {
   path: string;
   size?: number;
   modified?: number;
 }
 
-export function Preview({ projectId, isGenerating, generationCompleted }: PreviewProps) {
+export function Preview({ startupId, isGenerating, generationCompleted }: PreviewProps) {
   const [previewUrl, setPreviewUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [hasIndexFile, setHasIndexFile] = useState(false);
@@ -24,20 +24,20 @@ export function Preview({ projectId, isGenerating, generationCompleted }: Previe
   const previousGeneratingRef = useRef(isGenerating);
 
   const checkForIndexFile = useCallback(async () => {
-    if (!projectId) return;
+    if (!startupId) return;
 
     try {
-      console.log(`[Preview] Checking for index file in project ${projectId}`);
-      const response = await fetch(`/api/projects/${projectId}`);
+      console.log(`[Preview] Checking for index file in startup ${startupId}`);
+      const response = await fetch(`/api/startups/${startupId}`);
       const data = await response.json();
 
       console.log(`[Preview] API response:`, data);
 
       if (data.success && data.files) {
-        const files = data.files as ProjectFile[];
-        console.log(`[Preview] Found ${files.length} files:`, files.map((f: ProjectFile) => f.path));
+        const files = data.files as StartupFile[];
+        console.log(`[Preview] Found ${files.length} files:`, files.map((f: StartupFile) => f.path));
 
-        const hasIndex = files.some((file: ProjectFile) =>
+        const hasIndex = files.some((file: StartupFile) =>
           file.path === 'index.html' || file.path.endsWith('/index.html')
         );
 
@@ -46,7 +46,7 @@ export function Preview({ projectId, isGenerating, generationCompleted }: Previe
         if (hasIndex) {
           setHasIndexFile(true);
           setKey(k => k + 1);
-          console.log(`[Preview] ✅ Showing preview for ${projectId}`);
+          console.log(`[Preview] ✅ Showing preview for ${startupId}`);
         } else {
           setHasIndexFile(false);
           console.log(`[Preview] ❌ No index.html found`);
@@ -56,11 +56,11 @@ export function Preview({ projectId, isGenerating, generationCompleted }: Previe
       console.error('Error checking for index file:', error);
       setHasIndexFile(false);
     }
-  }, [projectId]);
+  }, [startupId]);
 
   useEffect(() => {
-    if (projectId) {
-      const url = `/api/projects/${projectId}/preview/index.html`;
+    if (startupId) {
+      const url = `/api/startups/${startupId}/preview/index.html`;
       setPreviewUrl(url);
       setHasIndexFile(false);
       setHasCheckedAfterGeneration(false);
@@ -71,14 +71,14 @@ export function Preview({ projectId, isGenerating, generationCompleted }: Previe
       setHasCheckedAfterGeneration(false);
       setKey(0);
     }
-  }, [projectId]);
+  }, [startupId]);
 
   useEffect(() => {
-    if (generationCompleted && projectId && !hasCheckedAfterGeneration) {
+    if (generationCompleted && startupId && !hasCheckedAfterGeneration) {
       void checkForIndexFile();
       setHasCheckedAfterGeneration(true);
     }
-  }, [generationCompleted, projectId, hasCheckedAfterGeneration, checkForIndexFile]);
+  }, [generationCompleted, startupId, hasCheckedAfterGeneration, checkForIndexFile]);
 
   useEffect(() => {
     if (isGenerating) {
@@ -86,15 +86,15 @@ export function Preview({ projectId, isGenerating, generationCompleted }: Previe
       setHasCheckedAfterGeneration(false);
     }
 
-    if (previousGeneratingRef.current === true && isGenerating === false && projectId) {
+    if (previousGeneratingRef.current === true && isGenerating === false && startupId) {
       void checkForIndexFile();
       setHasCheckedAfterGeneration(true);
     }
     previousGeneratingRef.current = isGenerating;
-  }, [isGenerating, projectId, checkForIndexFile]);
+  }, [isGenerating, startupId, checkForIndexFile]);
 
   const handleRefresh = () => {
-    if (isGenerating || !projectId) return;
+    if (isGenerating || !startupId) return;
     setIsLoading(true);
     checkForIndexFile()
       .finally(() => setTimeout(() => setIsLoading(false), 500));
@@ -107,42 +107,42 @@ export function Preview({ projectId, isGenerating, generationCompleted }: Previe
   };
 
   return (
-    <div className="h-full flex flex-col bg-gray-900">
-      <div className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700">
-        <div className="flex items-center space-x-2">
-          <Globe className="w-4 h-4 text-green-400" />
-          <span className="text-sm font-medium text-gray-200">Preview</span>
+    <div className="h-full flex flex-col bg-[#0b1a33]">
+      <div className="flex items-center justify-between px-4 py-2 bg-[#142646] border-b border-[#1f3557]">
+        <div className="flex items-center space-x-2 text-[#dbe9ff]">
+          <Globe className="w-4 h-4 text-[#f2c94c]" />
+          <span className="text-sm font-medium">Live Preview</span>
         </div>
         <div className="flex items-center space-x-2">
           <button
             onClick={handleRefresh}
-            className="p-1 hover:bg-gray-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-1 hover:bg-[#1f3557] rounded disabled:opacity-50 disabled:cursor-not-allowed text-[#dbe9ff]"
             title="Refresh"
             disabled={isGenerating || !hasIndexFile}
           >
             <RefreshCw
-              className={`w-4 h-4 text-gray-400 ${isLoading ? 'animate-spin' : ''}`}
+              className={`w-4 h-4 ${isLoading ? 'animate-spin text-[#f2c94c]' : 'text-[#8ba4c7]'}`}
             />
           </button>
           <button
             onClick={handleOpenExternal}
-            className="p-1 hover:bg-gray-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-1 hover:bg-[#1f3557] rounded disabled:opacity-50 disabled:cursor-not-allowed text-[#dbe9ff]"
             title="Open in new tab"
             disabled={!hasIndexFile || isGenerating}
           >
-            <ExternalLink className="w-4 h-4 text-gray-400" />
+            <ExternalLink className="w-4 h-4 text-[#8ba4c7]" />
           </button>
         </div>
       </div>
 
-      <div className="flex-1 bg-white">
-        {projectId ? (
+      <div className="flex-1 bg-[#0f1d36] border-t border-[#0b1a33]">
+        {startupId ? (
           isGenerating ? (
-            <div className="h-full flex items-center justify-center bg-gray-50 text-gray-600">
+            <div className="h-full flex items-center justify-center bg-[#0f1d36] text-[#b8c7dd]">
               <div className="text-center">
-                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-                <p className="font-medium">Generating your app...</p>
-                <p className="text-sm mt-2">Preview will appear when ready</p>
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#f2c94c] mb-4"></div>
+                <p className="font-medium text-white">Generating your MVP...</p>
+                <p className="text-sm mt-2 text-[#8ba4c7]">The preview will refresh automatically once it is ready.</p>
               </div>
             </div>
           ) : hasIndexFile ? (
@@ -155,29 +155,29 @@ export function Preview({ projectId, isGenerating, generationCompleted }: Previe
               sandbox="allow-scripts allow-same-origin allow-forms"
             />
           ) : hasCheckedAfterGeneration ? (
-            <div className="h-full flex items-center justify-center bg-gray-50 text-gray-600">
+            <div className="h-full flex items-center justify-center bg-[#0f1d36] text-[#b8c7dd]">
               <div className="text-center">
-                <AlertCircle className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                <p className="font-medium">No preview available</p>
-                <p className="text-sm mt-2">No index.html was generated</p>
-                <p className="text-xs mt-1 text-gray-500">Try asking the AI to create a web page</p>
+                <AlertCircle className="w-16 h-16 mx-auto mb-4 text-[#f2c94c]" />
+                <p className="font-medium text-white">No preview available</p>
+                <p className="text-sm mt-2 text-[#8ba4c7]">The generated MVP is missing an index.html file.</p>
+                <p className="text-xs mt-1 text-[#6f87ab]">Ask the AI to add a landing page or main screen.</p>
               </div>
             </div>
           ) : (
-            <div className="h-full flex items-center justify-center bg-gray-50 text-gray-600">
+            <div className="h-full flex items-center justify-center bg-[#0f1d36] text-[#b8c7dd]">
               <div className="text-center">
-                <Globe className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                <p className="font-medium">Ready for preview</p>
-                <p className="text-sm mt-2">Start a conversation to generate your app</p>
+                <Globe className="w-16 h-16 mx-auto mb-4 text-[#f2c94c]" />
+                <p className="font-medium text-white">Ready for preview</p>
+                <p className="text-sm mt-2 text-[#8ba4c7]">Collaborate with the AI to build your MVP.</p>
               </div>
             </div>
           )
         ) : (
-          <div className="h-full flex items-center justify-center bg-gray-900 text-gray-400">
+          <div className="h-full flex items-center justify-center bg-[#0f1d36] text-[#8ba4c7]">
             <div className="text-center">
-              <Globe className="w-16 h-16 mx-auto mb-4 opacity-50" />
-              <p>No preview available</p>
-              <p className="text-sm mt-2">Start a project to see the preview</p>
+              <Globe className="w-16 h-16 mx-auto mb-4 text-[#f2c94c]" />
+              <p className="font-medium text-white">No preview available</p>
+              <p className="text-sm mt-2">Submit an idea above to generate your MVP preview.</p>
             </div>
           </div>
         )}

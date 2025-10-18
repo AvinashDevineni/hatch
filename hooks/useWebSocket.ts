@@ -68,8 +68,8 @@ const summarizeToolUse = (tool?: string, input?: Record<string, unknown>): strin
       const filePath = typeof safeInput.file_path === 'string' ? safeInput.file_path : null;
       return filePath ? `Reviewing ${filePath}` : 'Reviewing a file';
     }
-    case 'get_project_structure':
-      return 'Inspecting project structure';
+    case 'get_startup_structure':
+      return 'Inspecting startup structure';
     default:
       return null;
   }
@@ -105,7 +105,7 @@ const summarizeAgentUpdate = (update: AgentUpdate | undefined): { content: strin
   }
 };
 
-export function useWebSocket(projectId: string | null): UseWebSocketReturn {
+export function useWebSocket(startupId: string | null): UseWebSocketReturn {
   const [isConnected, setIsConnected] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -115,7 +115,7 @@ export function useWebSocket(projectId: string | null): UseWebSocketReturn {
 
   // Save messages whenever they change (debounced)
   useEffect(() => {
-    if (!projectId || messages.length === 0) return;
+    if (!startupId || messages.length === 0) return;
 
     const saveTimer = setTimeout(async () => {
       try {
@@ -124,7 +124,7 @@ export function useWebSocket(projectId: string | null): UseWebSocketReturn {
           timestamp: msg.timestamp instanceof Date ? msg.timestamp.toISOString() : msg.timestamp
         }));
 
-        await fetch(`/api/projects/${projectId}/messages`, {
+        await fetch(`/api/startups/${startupId}/messages`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ messages: messagesToSave })
@@ -135,14 +135,14 @@ export function useWebSocket(projectId: string | null): UseWebSocketReturn {
     }, 1000); // Debounce 1 second
 
     return () => clearTimeout(saveTimer);
-  }, [messages, projectId]);
+  }, [messages, startupId]);
 
   useEffect(() => {
     isGeneratingRef.current = isGenerating;
   }, [isGenerating]);
 
   useEffect(() => {
-    if (!projectId) return;
+    if (!startupId) return;
 
     let pingInterval: NodeJS.Timeout;
     let reconnectTimeout: NodeJS.Timeout;
@@ -152,7 +152,7 @@ export function useWebSocket(projectId: string | null): UseWebSocketReturn {
     const connect = () => {
       // Connect to WebSocket
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.hostname}:${window.location.port}/ws/${projectId}`;
+      const wsUrl = `${protocol}//${window.location.hostname}:${window.location.port}/ws/${startupId}`;
 
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
@@ -189,7 +189,7 @@ export function useWebSocket(projectId: string | null): UseWebSocketReturn {
             } else {
               setMessages([{
                 type: 'system',
-                content: 'Connected to project',
+                content: 'Connected to startup',
                 timestamp: new Date()
               }]);
             }
@@ -229,7 +229,7 @@ export function useWebSocket(projectId: string | null): UseWebSocketReturn {
           }
 
           case 'generation_started':
-            console.log(`[WebSocket] Generation started for project ${projectId}`);
+            console.log(`[WebSocket] Generation started for startup ${startupId}`);
             setIsGenerating(true);
             setGenerationCompleted(false);
             setMessages(prev => [...prev, {
@@ -254,7 +254,7 @@ export function useWebSocket(projectId: string | null): UseWebSocketReturn {
             break;
 
           case 'generation_complete':
-            console.log(`[WebSocket] ✅ Generation complete for project ${projectId}`);
+            console.log(`[WebSocket] ✅ Generation complete for startup ${startupId}`);
             setIsGenerating(false);
             setGenerationCompleted(true);
             setMessages(prev => [...prev, {
@@ -264,7 +264,7 @@ export function useWebSocket(projectId: string | null): UseWebSocketReturn {
             }]);
 
             // Mark generation as complete in backend
-            fetch(`/api/projects/${projectId}/complete`, {
+            fetch(`/api/startups/${startupId}/complete`, {
               method: 'POST'
             }).catch(err => console.error('Error marking complete:', err));
             break;
@@ -285,6 +285,47 @@ export function useWebSocket(projectId: string | null): UseWebSocketReturn {
           case 'chat_complete':
             setIsGenerating(false);
             break;
+
+          case 'live_feedback_received': {
+            const feedback = data.feedback;
+            if (feedback) {
+              const ratingsSummary = Array.isArray(feedback.ratings)
+                ? feedback.ratings
+                    .map((rating: { question?: string; value?: number }) => {
+                      const question = typeof rating?.question === 'string' ? rating.question : 'Rating';
+                      const value = typeof rating?.value === 'number' ? rating.value : '?';
+                      return `${question}: ${value}`;
+                    })
+                    .join(', ')
+                : 'No ratings supplied';
+
+              const timestamp = typeof feedback.timestamp === 'string' ? new Date(feedback.timestamp) : new Date();
+
+              setMessages(prev => [...prev, {
+                type: 'system',
+                content: [
+                  'Live feedback received from deployed site.',
+                  `Deployment: ${feedback.deploymentUrl || 'unknown'}`,
+                  `Ratings: ${ratingsSummary}`,
+                  `Comment: ${feedback.comment || 'None provided.'}`
+                ].join('\n'),
+                timestamp
+              }]);
+            }
+            break;
+          }
+
+          case 'feedback_processing_started': {
+            setIsGenerating(true);
+            const feedback = data.feedback;
+            const deployment = feedback?.deploymentUrl ? ` (${feedback.deploymentUrl})` : '';
+            setMessages(prev => [...prev, {
+              type: 'system',
+              content: `Processing live user feedback${deployment}. The AI is implementing updates automatically.`,
+              timestamp: new Date()
+            }]);
+            break;
+          }
 
           case 'error':
             setIsGenerating(false);
@@ -354,7 +395,7 @@ export function useWebSocket(projectId: string | null): UseWebSocketReturn {
         wsRef.current.close();
       }
     };
-  }, [projectId]);
+  }, [startupId]);
 
   const sendMessage = useCallback((type: string, data: Record<string, unknown>) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {

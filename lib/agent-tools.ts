@@ -1,7 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { spawn } from 'child_process';
-import { config } from './config';
 
 export interface OperationResult {
   success: boolean;
@@ -26,16 +25,16 @@ export interface FileInfo {
  * Collection of tools for code generation and file management
  */
 export class CodeGeneratorTools {
-  private projectPath: string;
+  private startupPath: string;
 
-  constructor(projectPath: string) {
-    this.projectPath = projectPath;
-    // Ensure project directory exists
-    fs.mkdir(this.projectPath, { recursive: true }).catch(() => {});
+  constructor(startupPath: string) {
+    this.startupPath = startupPath;
+    // Ensure startup directory exists
+    fs.mkdir(this.startupPath, { recursive: true }).catch(() => {});
   }
 
   /**
-   * Sanitize file path to ensure it's relative and doesn't contain the project path
+   * Sanitize file path to ensure it's relative and doesn't contain the startup path
    */
   private sanitizePath(filePath: string): string {
     if (!filePath || typeof filePath !== 'string') {
@@ -43,13 +42,13 @@ export class CodeGeneratorTools {
     }
     let pathStr = filePath.trim();
 
-    // Remove any reference to the project path
-    if (pathStr.startsWith(this.projectPath)) {
-      pathStr = pathStr.substring(this.projectPath.length).replace(/^\/+/, '');
+    // Remove any reference to the startup path
+    if (pathStr.startsWith(this.startupPath)) {
+      pathStr = pathStr.substring(this.startupPath.length).replace(/^\/+/, '');
     }
 
-    // Remove "projects/" prefix if present (common AI mistake)
-    if (pathStr.startsWith('projects/')) {
+    // Remove "startups/" prefix if present (common AI mistake)
+    if (pathStr.startsWith('startups/')) {
       pathStr = pathStr.substring(9);
     }
 
@@ -76,7 +75,7 @@ export class CodeGeneratorTools {
         };
       }
       const sanitizedPath = this.sanitizePath(filePath);
-      const fullPath = path.join(this.projectPath, sanitizedPath);
+      const fullPath = path.join(this.startupPath, sanitizedPath);
 
       console.log(`[Tools] Creating file: ${sanitizedPath} (${content.length} bytes)`);
 
@@ -113,7 +112,7 @@ export class CodeGeneratorTools {
         };
       }
       const sanitizedPath = this.sanitizePath(filePath);
-      const fullPath = path.join(this.projectPath, sanitizedPath);
+      const fullPath = path.join(this.startupPath, sanitizedPath);
 
       console.log(`[Tools] Updating file: ${sanitizedPath} (${content.length} bytes)`);
 
@@ -141,7 +140,7 @@ export class CodeGeneratorTools {
    */
   async readFile(filePath: string): Promise<OperationResult> {
     try {
-      const fullPath = path.join(this.projectPath, filePath);
+      const fullPath = path.join(this.startupPath, filePath);
 
       try {
         await fs.access(fullPath);
@@ -172,7 +171,7 @@ export class CodeGeneratorTools {
    */
   async deleteFile(filePath: string): Promise<OperationResult> {
     try {
-      const fullPath = path.join(this.projectPath, filePath);
+      const fullPath = path.join(this.startupPath, filePath);
 
       try {
         await fs.access(fullPath);
@@ -200,7 +199,7 @@ export class CodeGeneratorTools {
    */
   async listFiles(directory: string = '.'): Promise<OperationResult> {
     try {
-      const fullPath = path.join(this.projectPath, directory);
+      const fullPath = path.join(this.startupPath, directory);
 
       try {
         await fs.access(fullPath);
@@ -213,7 +212,7 @@ export class CodeGeneratorTools {
 
       const files: FileInfo[] = [];
 
-      async function walkDir(dir: string, projectPath: string) {
+      async function walkDir(dir: string, startupPath: string) {
         const entries = await fs.readdir(dir, { withFileTypes: true });
 
         for (const entry of entries) {
@@ -221,19 +220,19 @@ export class CodeGeneratorTools {
 
           if (entry.isFile()) {
             const stats = await fs.stat(fullEntryPath);
-            const relativePath = path.relative(projectPath, fullEntryPath);
+            const relativePath = path.relative(startupPath, fullEntryPath);
             files.push({
               path: relativePath,
               size: stats.size,
               modified: stats.mtimeMs
             });
           } else if (entry.isDirectory()) {
-            await walkDir(fullEntryPath, projectPath);
+            await walkDir(fullEntryPath, startupPath);
           }
         }
       }
 
-      await walkDir(fullPath, this.projectPath);
+      await walkDir(fullPath, this.startupPath);
 
       return {
         success: true,
@@ -252,7 +251,7 @@ export class CodeGeneratorTools {
    */
   async createDirectory(dirPath: string): Promise<OperationResult> {
     try {
-      const fullPath = path.join(this.projectPath, dirPath);
+      const fullPath = path.join(this.startupPath, dirPath);
       await fs.mkdir(fullPath, { recursive: true });
 
       return {
@@ -269,11 +268,11 @@ export class CodeGeneratorTools {
   }
 
   /**
-   * Run a shell command in the project directory
+   * Run a shell command in the startup directory
    */
   async runCommand(command: string, cwd: string = '.'): Promise<OperationResult> {
     return new Promise((resolve) => {
-      const fullCwd = path.join(this.projectPath, cwd);
+      const fullCwd = path.join(this.startupPath, cwd);
 
       const proc = spawn(command, {
         cwd: fullCwd,
@@ -310,9 +309,9 @@ export class CodeGeneratorTools {
   }
 
   /**
-   * Get the complete project file structure
+   * Get the complete startup file structure
    */
-  getProjectStructure(): OperationResult {
+  getStartupStructure(): OperationResult {
     try {
       function buildTree(dirPath: string, prefix: string = ''): string[] {
         const items: string[] = [];
@@ -336,24 +335,24 @@ export class CodeGeneratorTools {
               items.push(...buildTree(subPath, prefix + extension));
             }
           });
-        } catch (error) {
+        } catch {
           // Permission error or other issue, skip this directory
         }
 
         return items;
       }
 
-      const tree = [path.basename(this.projectPath), ...buildTree(this.projectPath)];
+      const tree = [path.basename(this.startupPath), ...buildTree(this.startupPath)];
 
       return {
         success: true,
         structure: tree.join('\n'),
-        root: this.projectPath
+        root: this.startupPath
       };
     } catch (error) {
       return {
         success: false,
-        message: `Error getting project structure: ${error instanceof Error ? error.message : String(error)}`
+        message: `Error getting startup structure: ${error instanceof Error ? error.message : String(error)}`
       };
     }
   }

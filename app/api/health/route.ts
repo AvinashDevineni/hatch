@@ -4,6 +4,6 @@ export async function GET() {
   return NextResponse.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
-    active_projects: 0 // Will be updated with actual count later
+    active_startups: 0 // Will be updated with actual count later
   });
 }

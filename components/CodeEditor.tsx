@@ -5,24 +5,22 @@ import Editor from '@monaco-editor/react';
 import { Code } from 'lucide-react';
 
 interface CodeEditorProps {
-  projectId: string;
+  startupId: string;
   selectedFile: string | null;
 }
 
-export function CodeEditor({ projectId, selectedFile }: CodeEditorProps) {
+export function CodeEditor({ startupId, selectedFile }: CodeEditorProps) {
   const [content, setContent] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (!projectId || !selectedFile) {
+    if (!startupId || !selectedFile) {
       setContent('');
       return;
     }
 
     const loadFile = async () => {
-      setIsLoading(true);
       try {
-        const response = await fetch(`/api/projects/${projectId}/files/${selectedFile}`);
+        const response = await fetch(`/api/startups/${startupId}/files/${selectedFile}`);
         const data = await response.json();
 
         if (data.success) {
@@ -30,13 +28,10 @@ export function CodeEditor({ projectId, selectedFile }: CodeEditorProps) {
         }
       } catch (error) {
         console.error('Error loading file:', error);
-      } finally {
-        setIsLoading(false);
-      }
     };
 
     loadFile();
-  }, [projectId, selectedFile]);
+  }, [startupId, selectedFile]);
 
   const getLanguage = (filePath: string) => {
     const ext = filePath.split('.').pop()?.toLowerCase();
@@ -55,11 +50,11 @@ export function CodeEditor({ projectId, selectedFile }: CodeEditorProps) {
   };
 
   return (
-    <div className="h-full flex flex-col bg-gray-900">
-      <div className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700">
+    <div className="h-full flex flex-col bg-[#0b1a33]">
+      <div className="flex items-center justify-between px-4 py-2 bg-[#142646] border-b border-[#1f3557]">
         <div className="flex items-center space-x-2">
           <Code className="w-4 h-4 text-purple-400" />
-          <span className="text-sm font-medium text-gray-200">
+          <span className="text-sm font-medium text-[#dbe9ff]">
             {selectedFile || 'No file selected'}
           </span>
         </div>
@@ -82,7 +77,7 @@ export function CodeEditor({ projectId, selectedFile }: CodeEditorProps) {
             }}
           />
         ) : (
-          <div className="h-full flex items-center justify-center text-gray-500">
+          <div className="h-full flex items-center justify-center text-[#6f87ab]">
             Select a file to view its contents
           </div>
         )}

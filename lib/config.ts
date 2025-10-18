@@ -14,8 +14,9 @@ class Config {
 
   // Paths
   BASE_DIR: string;
-  PROJECTS_DIR: string;
+  STARTUPS_DIR: string;
   TEMPLATES_DIR: string;
+  PUBLIC_BASE_URL: string;
 
   // Node.js settings
   NODE_PATH: string;
@@ -32,8 +33,10 @@ class Config {
     this.HOST = process.env.HOST || '0.0.0.0';
 
     this.BASE_DIR = process.cwd();
-    this.PROJECTS_DIR = process.env.PROJECTS_DIR || path.join(this.BASE_DIR, 'projects');
+    this.STARTUPS_DIR = process.env.STARTUPS_DIR || process.env.PROJECTS_DIR || path.join(this.BASE_DIR, 'startups');
     this.TEMPLATES_DIR = path.join(this.BASE_DIR, 'templates');
+    const defaultBaseUrl = `http://localhost:${this.PORT}`;
+    this.PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || defaultBaseUrl;
 
     this.NODE_PATH = process.env.NODE_PATH || 'node';
     this.NPM_PATH = process.env.NPM_PATH || 'npm';
@@ -51,8 +54,8 @@ class Config {
     }
 
     // Create directories if they don't exist
-    if (!fs.existsSync(this.PROJECTS_DIR)) {
-      fs.mkdirSync(this.PROJECTS_DIR, { recursive: true });
+    if (!fs.existsSync(this.STARTUPS_DIR)) {
+      fs.mkdirSync(this.STARTUPS_DIR, { recursive: true });
     }
     if (!fs.existsSync(this.TEMPLATES_DIR)) {
       fs.mkdirSync(this.TEMPLATES_DIR, { recursive: true });
