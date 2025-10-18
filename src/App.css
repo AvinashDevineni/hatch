@@ -1,42 +1,69 @@
+body {
+  margin: 0;
+  font-family: "Playfair Display", Georgia, serif;
+  background: linear-gradient(to bottom right, #0b1a33, #0b1a33); /* navy blue */
+  color: #ffffff; /* default text white */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+  width: 100%;
   text-align: center;
 }
 
+/* --- LANDING PAGE --- */
+.landing {
+  padding: 40px 20px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
 .logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+  width: 80px;
+  margin-bottom: 20px;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+h1 {
+  font-size: 2.4rem;
+  color: #f2c94c; /* mustard yellow */
+  margin-bottom: 1rem;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.mission {
+  font-size: 1.1rem;
+  color: #ffffff; /* white */
+  margin-bottom: 2rem;
 }
 
-.card {
-  padding: 2em;
+/* --- FEATURES --- */
+.features {
+  display: flex;
+  justify-content: center;
+  gap: 25px;
+  flex-wrap: wrap;
+  margin-bottom: 40px;
 }
 
-.read-the-docs {
-  color: #888;
+.feature-card {
+  background-color: #f2c94c; /* mustard yellow */
+  border-radius: 10px;
+  padding: 25px;
+  width: 270px;
+  text-align: center;
+  color: #0b1a33; /* text inside card navy */
+  box-shadow: 0 0 15px rgba(242, 201, 76, 0.2);
+  transition: all 0.25s ease-in-out;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 0 25px rgba(242, 201, 76, 0.35);
+}
+
+.feature-card img {
+  width: 60px;
+  margin-bottom: 15px;
 }
