@@ -1,0 +1,16 @@
+#idea-validation-txt {
+    margin-bottom: 30px;
+}
+
+#ideaContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+#ideaInput {
+    width: 400px;
+    height: 100px;
+    
+}

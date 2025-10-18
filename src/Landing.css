@@ -1,0 +1,73 @@
+main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  text-align: center;
+}
+
+body {
+  margin: 0;
+  font-family: "Playfair Display", Georgia, serif;
+  background: linear-gradient(to bottom right, #0b1a33, #0b1a33); /* navy blue */
+  color: #ffffff;
+  min-height: 100vh;
+}
+
+#root {
+  width: 100%;
+  text-align: center;
+}
+
+.logo {
+  width: 50px;
+  height: 100%;
+}
+
+h1 {
+  font-size: 2.4rem;
+  color: #f2c94c; /* mustard yellow */
+  margin-bottom: 1rem;
+}
+
+#hero {
+  max-width: 600px;
+  text-align: center;
+}
+
+.mission {
+  font-size: 1.1rem;
+  max-width: 800px;
+  color: #ffffff; /* white */
+  margin-bottom: 2rem;
+}
+
+/* --- FEATURES --- */
+.features {
+  display: flex;
+  justify-content: center;
+  gap: 25px;
+  flex-wrap: wrap;
+  margin-bottom: 40px;
+}
+
+.feature-card {
+  background-color: #ffffff; /* mustard yellow */
+  border-radius: 10px;
+  padding: 25px;
+  width: 270px;
+  text-align: center;
+  color: #0b1a33; /* text inside card navy */
+  box-shadow: 0 0 15px rgb(255, 255, 255, 0.25);
+  transition: all 0.25s ease-in-out;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 0 25px rgb(255, 255, 255, 0.35);
+}
+
+.feature-card img {
+  width: 60px;
+  margin-bottom: 15px;
+}
