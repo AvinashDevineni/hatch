@@ -14,8 +14,17 @@ const port = config.PORT;
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
+type ProjectEventPayload = Record<string, unknown>;
+
+interface ProjectSession {
+  agent: CodeGeneratorAgent;
+  pendingUpdates: ProjectEventPayload[];
+  isGenerating: boolean;
+  currentPrompt?: string;
+}
+
 // Active projects and WebSocket connections
-const activeProjects = new Map<string, CodeGeneratorAgent>();
+const projectSessions = new Map<string, ProjectSession>();
 const activeConnections = new Map<string, WebSocket>();
 
 app.prepare().then(() => {
@@ -60,15 +69,20 @@ app.prepare().then(() => {
     activeConnections.set(projectId, ws);
 
     try {
-      // Create or get agent for this project
-      let agent = activeProjects.get(projectId);
+      let session = projectSessions.get(projectId);
 
-      if (!agent) {
-        agent = new CodeGeneratorAgent(projectId);
+      if (!session) {
+        const agent = new CodeGeneratorAgent(projectId);
         await agent.initialize();
-        activeProjects.set(projectId, agent);
+        session = {
+          agent,
+          pendingUpdates: [],
+          isGenerating: false
+        };
+        projectSessions.set(projectId, session);
       }
 
+      // Create or get agent for this project
       // Load and send existing messages
       const projectPath = path.join(config.PROJECTS_DIR, projectId);
       const metadataFile = path.join(projectPath, 'project.json');
@@ -90,8 +104,12 @@ app.prepare().then(() => {
         type: 'connected',
         project_id: projectId,
         messages: existingMessages,
-        generationCompleted
+        generationCompleted,
+        isGenerating: session.isGenerating,
+        currentPrompt: session.currentPrompt ?? null
       });
+
+      flushPendingUpdates(projectId, ws);
 
       // Listen for messages
       ws.on('message', async (data: Buffer) => {
@@ -102,7 +120,17 @@ app.prepare().then(() => {
           if (messageType === 'generate') {
             const prompt = message.prompt;
 
-            safeSend(ws, {
+            const sessionForProject = projectSessions.get(projectId);
+            if (!sessionForProject) {
+              console.error(`No project session found for ${projectId}`);
+              return;
+            }
+
+            sessionForProject.isGenerating = true;
+            sessionForProject.currentPrompt = prompt;
+            sessionForProject.pendingUpdates = [];
+
+            dispatchProjectEvent(projectId, {
               type: 'generation_started',
               prompt
             });
@@ -111,26 +139,27 @@ app.prepare().then(() => {
               console.log(`[${projectId}] Starting code generation for prompt:`, prompt);
               let messageCount = 0;
 
-              for await (const response of agent!.generateCode(prompt)) {
+              for await (const response of sessionForProject.agent.generateCode(prompt)) {
                 messageCount++;
                 console.log(`[${projectId}] Agent message #${messageCount}:`, JSON.stringify(response, null, 2));
 
-                if (!safeSend(ws, {
+                dispatchProjectEvent(projectId, {
                   type: 'generation_update',
                   data: response
-                })) {
-                  console.log('Connection closed during generation, stopping');
-                  break;
-                }
+                });
               }
 
               console.log(`[${projectId}] Generation complete! Sent ${messageCount} messages`);
-              safeSend(ws, {
+              sessionForProject.isGenerating = false;
+              sessionForProject.currentPrompt = undefined;
+              dispatchProjectEvent(projectId, {
                 type: 'generation_complete'
               });
             } catch (error) {
               console.error('Error during code generation:', error);
-              safeSend(ws, {
+              sessionForProject.isGenerating = false;
+              sessionForProject.currentPrompt = undefined;
+              dispatchProjectEvent(projectId, {
                 type: 'error',
                 message: error instanceof Error ? error.message : 'Unknown error'
               });
@@ -139,22 +168,34 @@ app.prepare().then(() => {
             const chatMessage = message.message;
 
             try {
-              for await (const response of agent!.chat(chatMessage)) {
-                if (!safeSend(ws, {
-                  type: 'chat_update',
-                  data: response
-                })) {
-                  console.log('Connection closed during chat, stopping');
-                  break;
-                }
+              const sessionForProject = projectSessions.get(projectId);
+              if (!sessionForProject) {
+                console.error(`No project session found for ${projectId}`);
+                return;
               }
 
-              safeSend(ws, {
+              sessionForProject.isGenerating = true;
+
+              for await (const response of sessionForProject.agent.chat(chatMessage)) {
+                dispatchProjectEvent(projectId, {
+                  type: 'chat_update',
+                  data: response
+                });
+              }
+
+              sessionForProject.isGenerating = false;
+
+              dispatchProjectEvent(projectId, {
                 type: 'chat_complete'
               });
             } catch (error) {
               console.error('Error during chat:', error);
-              safeSend(ws, {
+              const sessionForProject = projectSessions.get(projectId);
+              if (sessionForProject) {
+                sessionForProject.isGenerating = false;
+              }
+
+              dispatchProjectEvent(projectId, {
                 type: 'error',
                 message: error instanceof Error ? error.message : 'Unknown error'
               });
@@ -188,6 +229,41 @@ app.prepare().then(() => {
     console.log(`✓ Projects directory: ${config.PROJECTS_DIR}`);
   });
 });
+
+function dispatchProjectEvent(projectId: string, data: ProjectEventPayload) {
+  const ws = activeConnections.get(projectId);
+
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    safeSend(ws, data);
+    return;
+  }
+
+  const session = projectSessions.get(projectId);
+  if (session) {
+    session.pendingUpdates.push(data);
+  }
+}
+
+function flushPendingUpdates(projectId: string, ws: WebSocket) {
+  const session = projectSessions.get(projectId);
+
+  if (!session || session.pendingUpdates.length === 0) {
+    return;
+  }
+
+  const queue = [...session.pendingUpdates];
+  session.pendingUpdates = [];
+
+  for (let i = 0; i < queue.length; i++) {
+    const update = queue[i];
+    const success = safeSend(ws, update);
+
+    if (!success) {
+      session.pendingUpdates = queue.slice(i);
+      break;
+    }
+  }
+}
 
 /**
  * Safely send data through WebSocket if connection is still open

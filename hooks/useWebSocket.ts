@@ -175,7 +175,7 @@ export function useWebSocket(projectId: string | null): UseWebSocketReturn {
         console.log('WebSocket message:', data);
 
         switch (data.type) {
-          case 'connected':
+          case 'connected': {
             // Load existing messages if any
             if (Array.isArray(data.messages) && data.messages.length > 0) {
               const loadedMessages = (data.messages as StoredMessageWire[])
@@ -198,11 +198,40 @@ export function useWebSocket(projectId: string | null): UseWebSocketReturn {
             if (data.generationCompleted !== undefined) {
               setGenerationCompleted(data.generationCompleted);
             }
+
+            if (typeof data.isGenerating === 'boolean') {
+              setIsGenerating(data.isGenerating);
+
+               if (data.isGenerating) {
+                 setGenerationCompleted(false);
+               }
+
+              if (data.isGenerating && typeof data.currentPrompt === 'string' && data.currentPrompt.trim() !== '') {
+                const resumedMessage = `Resuming generation: ${data.currentPrompt}`;
+                setMessages(prev => {
+                  const alreadyNotified = prev.some(msg => msg.type === 'system' && msg.content === resumedMessage);
+                  if (alreadyNotified) {
+                    return prev;
+                  }
+
+                  return [
+                    ...prev,
+                    {
+                      type: 'system',
+                      content: resumedMessage,
+                      timestamp: new Date()
+                    }
+                  ];
+                });
+              }
+            }
             break;
+          }
 
           case 'generation_started':
             console.log(`[WebSocket] Generation started for project ${projectId}`);
             setIsGenerating(true);
+            setGenerationCompleted(false);
             setMessages(prev => [...prev, {
               type: 'system',
               content: `Starting generation: ${data.prompt}`,
@@ -340,7 +369,13 @@ export function useWebSocket(projectId: string | null): UseWebSocketReturn {
   }, [sendMessage]);
 
   const chat = useCallback((message: string) => {
-    sendMessage('chat', { message });
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      setIsGenerating(true);
+      setGenerationCompleted(false);
+      sendMessage('chat', { message });
+    } else {
+      console.error('WebSocket is not connected');
+    }
   }, [sendMessage]);
 
   return {
