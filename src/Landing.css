@@ -1,11 +1,16 @@
+main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  text-align: center;
+}
+
 body {
   margin: 0;
   font-family: "Playfair Display", Georgia, serif;
   background: linear-gradient(to bottom right, #0b1a33, #0b1a33); /* navy blue */
-  color: #ffffff; /* default text white */
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  color: #ffffff;
   min-height: 100vh;
 }
 
@@ -14,16 +19,9 @@ body {
   text-align: center;
 }
 
-/* --- LANDING PAGE --- */
-.landing {
-  padding: 40px 20px;
-  max-width: 1000px;
-  margin: 0 auto;
-}
-
 .logo {
-  width: 80px;
-  margin-bottom: 20px;
+  width: 50px;
+  height: 100%;
 }
 
 h1 {
@@ -32,8 +30,14 @@ h1 {
   margin-bottom: 1rem;
 }
 
+#hero {
+  max-width: 600px;
+  text-align: center;
+}
+
 .mission {
   font-size: 1.1rem;
+  max-width: 800px;
   color: #ffffff; /* white */
   margin-bottom: 2rem;
 }
@@ -48,19 +52,19 @@ h1 {
 }
 
 .feature-card {
-  background-color: #f2c94c; /* mustard yellow */
+  background-color: #ffffff; /* mustard yellow */
   border-radius: 10px;
   padding: 25px;
   width: 270px;
   text-align: center;
   color: #0b1a33; /* text inside card navy */
-  box-shadow: 0 0 15px rgba(242, 201, 76, 0.2);
+  box-shadow: 0 0 15px rgb(255, 255, 255, 0.25);
   transition: all 0.25s ease-in-out;
 }
 
 .feature-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 0 25px rgba(242, 201, 76, 0.35);
+  box-shadow: 0 0 25px rgb(255, 255, 255, 0.35);
 }
 
 .feature-card img {
