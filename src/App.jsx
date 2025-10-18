@@ -1,25 +1,26 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
+import Landing from './Landing';
+import IdeaValidation from './IdeaValidation';
+import ValidationLoading from './ValidationLoading';
+import ValidationResults from './ValidationResults';
 import OpenAI from "openai";
-import './App.css'
-import Logo from '/logo.png'
-import Lightbulb from '/lightbulb.png'
-import Gear from '/gear.png'
-import Rocket_Ship from '/rocketship.png'
 
-// Initialize OpenAI
+//Creating constant for new Open AI with API Key
 const client = new OpenAI({
   apiKey: 'YOUR_API_KEY',
   dangerouslyAllowBrowser: true
 });
 
+//Checking business validity 
 async function checkBusinessIdea(idea) {
   const response = await client.responses.create({
     model: "gpt-5",
+    //Asks for business idea input
     input: [
       {
         role: "developer",
         content: [
-          { type: "input_text", text: "You are a business/startup idea evaluation expert." }
+          { type: "input_text", text: "You are a business/startup idea evaluation expert. You will be given an idea by a budding entrepreneur." }
         ]
       },
       {
@@ -29,6 +30,7 @@ async function checkBusinessIdea(idea) {
         ]
       }
     ],
+    //Assessing the uniqueness, feasibility, and if it is platform supported. 
     text: {
       format: {
         type: "json_schema",
@@ -47,9 +49,16 @@ async function checkBusinessIdea(idea) {
               minimum: 0, maximum: 10,
               description: 'How feasible the idea is on a scale from 0-10.'
             },
-            platformSupported: { type: "boolean" }
+            feedback: {
+              type: 'string',
+              description: 'Feedback/precautionary warnings for the founder. Must be short and to the point (~150 characters maximum).'
+            },
+            platformSupported: { 
+              type: "boolean",
+              description: 'Whether or not the idea can be implemented as a web application'
+            }
           },
-          required: ["uniqueness", "feasibility", "platformSupported"],
+          required: ["uniqueness", "feasibility", "platformSupported", 'feedback'],
           additionalProperties: false
         }
       }
@@ -60,83 +69,39 @@ async function checkBusinessIdea(idea) {
 }
 
 function App() {
-  const [businessIdea, setBusinessidea] = useState(null);
+  const [ideaValidation, setIdeaValidation] = useState(null);
   const [pageIdx, setPageIdx] = useState(0);
-  const inputRef = useRef();
+  const [idea, setIdea] = useState('');
 
+  //Uses switch to move between different stages of website
   switch (pageIdx) {
-    // Landing page
     case 0:
-      return (
-        <div className="landing">
-          <header>
-            <img src={Logo} alt="Hatch logo" className="logo" />
-            <h1>Automate your startup journey — from idea to launch</h1>
-            <p className="mission">
-              Our mission is simple: make startup building effortless, so more ideas can change the world.
-            </p>
-          </header>
+      return <Landing onTryNow={() => setPageIdx(1)} />;
 
-          <div className="features">
-            <div className="feature-card">
-              <img src={Lightbulb} alt="lightbulb" />
-              <h3>Validate your business Idea</h3>
-              <p>AI insights on feasibility and demand</p>
-            </div>
-
-            <div className="feature-card">
-              <img src={Gear} alt="gear" />
-              <h3>Generate your MVP</h3>
-              <p>Prototype and content created automatically</p>
-            </div>
-
-            <div className="feature-card">
-              <img src={Rocket_Ship} alt="Rocket" />
-              <h3>Launch & Grow</h3>
-              <p>Create ads, get publicity and expand!</p>
-            </div>
-          </div>
-
-          <button className="cta" onClick={() => setPageIdx(1)}>Try it now</button>
-        </div>
-      );
-
-    // Input form
     case 1:
-      return (
-        <>
-          <h1>Welcome to Hatch!</h1>
-          <div id="ideaContainer">
-            <form id="ideaExist">
-              <label htmlFor="idea">Enter your business idea:</label>
-              <input ref={inputRef} type="text" id="ideaExistInput" />
-              <button
-                type="submit"
-                onClick={async e => {
-                  e.preventDefault();
-                  const res = await checkBusinessIdea(inputRef.current.value);
-                  setBusinessidea(JSON.parse(res));
-                  setPageIdx(2);
-                }}
-              >
-                Submit
-              </button>
-            </form>
-          </div>
-        </>
-      );
+      return <IdeaValidation onSubmitClick={idea => {
+        setIdea(idea);
+        checkBusinessIdea(idea).then(res => {
+          const validation = JSON.parse(res);
+          setIdeaValidation(validation);
+          setPageIdx(3);
+        });
 
-    // Results page
+        setPageIdx(2);
+      }} />;
+
     case 2:
-      console.log(businessIdea)
-      return (
-        <div className="results">
-          <h2>Results</h2>
-          <p>Is your business idea unique: {businessIdea.uniqueness}</p>
-          <p>Is your business idea feasible: {businessIdea.feasibility}</p>
-          <p>Is your platform supported: {`${businessIdea.platformSupported}`}</p>
-        </div>
-      );
+      return <ValidationLoading />
+
+    case 3:
+      return <ValidationResults ideaValidation={ideaValidation} onCreateMvp={() => {
+
+      }} onCreateMarketing={() => {
+        setPageIdx(4);
+      }} />;
+
+    case 4:
+      return <MarketingCreation idea={idea} />
   }
 }
 
